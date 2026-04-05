@@ -39,11 +39,9 @@ altitude: 0.0000
 ## Key Concepts
 ### - Vicsek angle $\theta$ 
 -
-$$
-	\theta _{t+1} = \theta _{t} + \chi_A \nabla A - \chi_B \nabla B
-	$$
+$$\theta _{t+1} = \theta _{t} + \chi_A \nabla A - \chi_B \nabla B$$
 - 
-  	$$ \theta \sim f(\nabla A,\nabla B)$$
+  	$\theta \sim f(\nabla A,\nabla B)$
 
 - about vicsek model [[1]](#ref1)
 	- The model consists of $N$ particles placed on a two-dimensional square box of sides $L$ 
@@ -56,7 +54,7 @@ $$
   - The interaction between the particles with noise is given by the simultaneous updating of all the velocity angles and all the particle positions according to the rules
   - Where $\xi_n(t)$ is a random variable uniformly distributed in the interval $[-\pi, \pi]$, and $\eta$ is the noise intensity, which is a positive parameter.
 		
-$$
+$
 \begin{aligned}
 &\text{Intrinsic noise:} \\[10pt]
 \theta_n(t + \Delta t) &= \mathrm{Angle}\!\left[ V_n(t) \right] + \eta \, \xi_n(t),\\[10pt]
@@ -68,7 +66,7 @@ x_n(t + \Delta t) &= x_n(t) + v_n(t + \Delta t)\Delta t \\[15pt]
 v_n(t + \Delta t) &= v_0 e^{i\theta_n(t+\Delta t)},\\[10pt]
 x_n(t + \Delta t) &= x_n(t) + v_n(t + \Delta t)\Delta t
 \end{aligned}
-$$
+$
 
 ### - Chemotaxis:
  - Chemotaxis : Chemotaxis is the phenomenon whereby somatic cells, bacteria, and other single-cell or multicellular organisms direct their movements in response to certain chemicals in their environment.
