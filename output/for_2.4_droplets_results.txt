@@ -1,0 +1,9 @@
+=== for_2.4_droplets ===
+
+Total paths detected       = 30
+Consistent paths (used)    = 3
+Ensemble average N         = 3
+
+MSD exponent alpha         = 0.7555967600067071
+PSD exponent beta_x        = 0.36384141370837747
+PSD exponent beta_y        = 0.32223494633362504

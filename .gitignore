@@ -1,0 +1,6 @@
+videos
+*.mp4
+*.avi
+__pycache__
+simulation_for_diff_beta_sigma
+simulation(model2)
