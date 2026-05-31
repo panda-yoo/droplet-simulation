@@ -104,7 +104,7 @@ def fit_vacf_exponential(
     tau: NDArray[np.floating],
     vacf: NDArray[np.floating],
     max_fit_fraction: Optional[float] = None,
-) -> Tuple[float, float, NDArray[np.floating], NDArray[np.floating]]:
+) -> Tuple[float, float, float, NDArray[np.floating], NDArray[np.floating]]:
     """
     Fit the VACF to ``C(t) = A exp(-t / τ_p)`` and return the velocity
     persistence time τ_p.
@@ -125,6 +125,8 @@ def fit_vacf_exponential(
         Fitted persistence time (same units as ``tau``).
     tau_p_err : float
         Standard error of τ_p from the covariance matrix.
+    r2 : float
+        R-squared of the fit.
     tau_fit : ndarray
         Lag values used in the fit.
     fit_curve : ndarray
@@ -149,7 +151,7 @@ def fit_vacf_exponential(
     vacf_fit = vacf[:stop]
 
     if len(tau_fit) < 5:
-        return np.nan, np.nan, tau_fit, np.array([])
+        return np.nan, np.nan, np.nan, tau_fit, np.array([])
 
     try:
         popt, pcov = curve_fit(
@@ -159,13 +161,17 @@ def fit_vacf_exponential(
             p0=[vacf_fit[0], float(tau_fit.max()) / 10.0],
         )
     except RuntimeError:
-        return np.nan, np.nan, tau_fit, np.array([])
+        return np.nan, np.nan, np.nan, tau_fit, np.array([])
 
     tau_p = float(popt[1])
     tau_p_err = float(np.sqrt(pcov[1, 1]))
     fit_curve = _model(tau_fit, *popt)
+    
+    ss_res = np.sum((vacf_fit - fit_curve) ** 2)
+    ss_tot = np.sum((vacf_fit - np.mean(vacf_fit)) ** 2)
+    r2 = 1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
 
-    return tau_p, tau_p_err, tau_fit, fit_curve
+    return tau_p, tau_p_err, r2, tau_fit, fit_curve
 
 
 # =========================================================

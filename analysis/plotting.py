@@ -28,7 +28,7 @@ Contents
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from analysis.plot_style import set_publication_style, StyleTokens, apply_grid, get_droplet_color
+from analysis.plot_style import set_publication_style, StyleTokens, apply_grid, get_droplet_color, apply_legend, add_diffusive_line, add_ballistic_line, add_zero_line
 
 # Apply global publication style
 set_publication_style()
@@ -74,13 +74,13 @@ def plot_trajectories(
         ax.plot(pos[-1, 0], pos[-1, 1], "s", color=c, markersize=6)
 
     ax.set_title(
-        f"{label} : Consistent Trajectories\n"
-        f"N = {n_ensemble} / {total_paths} total paths"
+        f"{label} : Trajectories\n"
+        f"N = {n_ensemble} droplets"
     )
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_aspect("equal")
-    ax.legend(fontsize=7, loc="best")
+    apply_legend(ax)
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, f"{label}_trajectories.png"), dpi=300)
     plt.close(fig)
@@ -94,6 +94,8 @@ def plot_msd_loglog(
     tau_seconds: NDArray[np.floating],
     ensemble_msd: NDArray[np.floating],
     alpha: float,
+    alpha_err: float,
+    r2_msd: float,
     fit_line_full: NDArray[np.floating],
     label: str,
     output_dir: str,
@@ -128,17 +130,17 @@ def plot_msd_loglog(
             tau_seconds[fit_mask],
             fit_line_full[fit_mask],
             "k:",
-            linewidth=2,
-            label=rf"Fit $\alpha={alpha:.3f}$",
+            linewidth=2.5,
+            label=rf"Fit ($\alpha = {alpha:.2f} \pm {alpha_err:.2f}$, $R^2 = {r2_msd:.2f}$)",
         )
 
     ax.set_title(
-        f"{label} : Log-Log MSD\n"
-        rf"$\alpha$ = {alpha:.3f}  |  N = {n_ensemble} droplets"
+        f"{label} : MSD\n"
+        rf"$\alpha = {alpha:.2f} \pm {alpha_err:.2f}$ | N = {n_ensemble} droplets"
     )
     ax.set_xlabel(r"Lag time $\tau$ (s)")
     ax.set_ylabel(r"$\langle \mathrm{MSD}(\tau)\rangle$")
-    ax.legend()
+    apply_legend(ax)
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, f"{label}_loglog_msd.png"), dpi=300)
     plt.close(fig)
@@ -157,6 +159,8 @@ def plot_vacf(
     tau_p_fit: Optional[NDArray[np.floating]] = None,
     vacf_fit_curve: Optional[NDArray[np.floating]] = None,
     tau_p: Optional[float] = None,
+    tau_p_err: Optional[float] = None,
+    r2: float = 0.0,
 ) -> None:
     """
     Plot normalised VACF (first quarter of the lag range).
@@ -194,16 +198,19 @@ def plot_vacf(
     ):
         mask = tau_p_fit <= tau_vacf_seconds[cut - 1]
         if np.any(mask):
-            legend_label = rf"Exp. fit $\tau_p={tau_p:.3f}$ s"
+            err_str = rf" \pm {tau_p_err:.1f}" if tau_p_err is not None else ""
+            legend_label = rf"Fit ($\tau_p = {tau_p:.1f}{err_str}\,\mathrm{{s}}$, $R^2 = {r2:.2f}$)"
             ax.plot(tau_p_fit[mask], vacf_fit_curve[mask], "k--",
-                    linewidth=1.5, label=legend_label)
+                    linewidth=2.5, label=legend_label)
 
     ax.set_title(
-        f"{label} : Velocity Autocorrelation\nN = {n_ensemble} droplets"
+        f"{label} : VACF\n"
+        f"N = {n_ensemble} droplets"
     )
+    add_zero_line(ax)
     ax.set_xlabel(r"Lag time $\tau$ (s)")
     ax.set_ylabel(r"$C_v(\tau)/C_v(0)$")
-    ax.legend()
+    apply_legend(ax)
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, f"{label}_vacf.png"), dpi=300)
     plt.close(fig)
@@ -222,6 +229,8 @@ def plot_orientation_corr(
     tau_r_fit: Optional[NDArray[np.floating]] = None,
     orient_fit_curve: Optional[NDArray[np.floating]] = None,
     tau_r: Optional[float] = None,
+    tau_r_err: Optional[float] = None,
+    r2: float = 0.0,
 ) -> None:
     """
     Plot ensemble orientation correlation.
@@ -256,15 +265,18 @@ def plot_orientation_corr(
         and tau_r is not None
         and not np.isnan(tau_r)
     ):
-        ax.plot(tau_r_fit, orient_fit_curve, "k--", linewidth=1.5,
-                label=rf"Exp. fit $\tau_r={tau_r:.3f}$ s")
+        err_str = rf" \pm {tau_r_err:.1f}" if tau_r_err is not None else ""
+        ax.plot(tau_r_fit, orient_fit_curve, "k--", linewidth=2.5,
+                label=rf"Fit ($\tau_r = {tau_r:.1f}{err_str}\,\mathrm{{s}}$, $R^2 = {r2:.2f}$)")
 
     ax.set_title(
-        f"{label} : Orientation Correlation\nN = {n_ensemble} droplets"
+        f"{label} : Orientation Correlation\n"
+        f"N = {n_ensemble} droplets"
     )
+    add_zero_line(ax)
     ax.set_xlabel(r"Lag time $\tau$ (s)")
     ax.set_ylabel(r"$\langle \cos(\Delta \theta)\rangle$")
-    ax.legend()
+    apply_legend(ax)
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, f"{label}_orientation_corr.png"), dpi=300)
     plt.close(fig)
@@ -278,6 +290,8 @@ def plot_psd_component(
     freq_psd: NDArray[np.floating],
     psd: NDArray[np.floating],
     beta: float,
+    beta_err: float,
+    r2: float,
     fit_freqs: NDArray[np.floating],
     fit_line: NDArray[np.floating],
     component: str,
@@ -313,16 +327,17 @@ def plot_psd_component(
     ax.loglog(freq_psd, psd, color=StyleTokens.PSD_X if component == "vx" else StyleTokens.PSD_Y, label="PSD")
 
     if len(fit_freqs) > 0 and not np.isnan(beta):
-        ax.loglog(fit_freqs, fit_line, "--",
-                  label=rf"$f^{{-{beta:.2f}}}$")
+        ax.loglog(fit_freqs, fit_line, "k:", linewidth=2.5,
+                  label=rf"Fit ($\beta = {beta:.2f} \pm {beta_err:.2f}$, $R^2 = {r2:.2f}$)")
 
     subscript = "x" if component == "vx" else "y"
     ax.set_title(
-        f"{label} : PSD of $v_{subscript}$\nN = {n_ensemble} droplets"
+        f"{label} : PSD(v{subscript})\n"
+        rf"N = {n_ensemble} droplets"
     )
     ax.set_xlabel("Frequency (Hz)")
     ax.set_ylabel(rf"$S_{{v_{subscript}}}(f)$")
-    ax.legend()
+    apply_legend(ax)
     fig.tight_layout()
     suffix = "vx" if component == "vx" else "vy"
     fig.savefig(os.path.join(output_dir, f"{label}_psd_{suffix}.png"), dpi=300)
@@ -337,6 +352,7 @@ def plot_local_msd_exponent(
     tau_seconds: NDArray[np.floating],
     d_msd: NDArray[np.floating],
     alpha: float,
+    alpha_err: float,
     label: str,
     output_dir: str,
     n_ensemble: int,
@@ -382,16 +398,17 @@ def plot_local_msd_exponent(
         except Exception:
             pass
 
-    ax.axhline(alpha, linestyle="--", label=rf"Global $\alpha={alpha:.2f}$")
-    ax.axhline(1.0, linestyle=":", color="gray", label="Diffusive")
-    ax.axhline(2.0, linestyle=":", color="gray", alpha=0.5, label="Ballistic")
+    ax.axhline(alpha, linestyle="--", color="k", lw=2.5, label=rf"Global $\alpha = {alpha:.2f} \pm {alpha_err:.2f}$")
+    add_diffusive_line(ax)
+    add_ballistic_line(ax)
 
     ax.set_title(
-        f"{label} : Local MSD Exponent\nN = {n_ensemble} droplets"
+        f"{label} : Local MSD Exponent\n"
+        f"N = {n_ensemble} droplets"
     )
     ax.set_xlabel(r"Lag time $\tau$ (s)")
     ax.set_ylabel(r"$\alpha(\tau)$")
-    ax.legend()
+    apply_legend(ax)
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, f"{label}_alpha_vs_tau.png"), dpi=300)
     plt.close(fig)
@@ -408,6 +425,7 @@ def plot_msd_comparison(
     msd_weighted: NDArray[np.floating],
     label: str,
     output_dir: str,
+    n_ensemble: int,
 ) -> None:
     """
     Plot full-length ensemble MSD vs pair-weighted MSD on log-log axes.
@@ -431,10 +449,17 @@ def plot_msd_comparison(
     ax.loglog(tau_seconds, ensemble_msd, color=StyleTokens.MSD, label="Full-length ensemble")
     ax.loglog(tau_weighted_seconds, msd_weighted, color=StyleTokens.ORIENT_CORR,
               label="Pair-weighted (all tracks)")
-    ax.set_title(f"{label} : MSD Comparison")
+    import logging
+    if len(msd_weighted) == len(ensemble_msd):
+        logging.warning("Pair count matches ensemble length! Is pair_count being reported as droplets?")
+
+    ax.set_title(f"{label} : MSD Comparison\nN = {n_ensemble} droplets")
+    ax.text(0.05, 0.95, f"{len(msd_weighted)} displacement pairs", 
+            transform=ax.transAxes, fontsize=14,
+            verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     ax.set_xlabel(r"Lag time $\tau$ (s)")
     ax.set_ylabel(r"$\langle \mathrm{MSD}(\tau)\rangle$")
-    ax.legend()
+    apply_legend(ax)
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, f"{label}_msd_pair_weighted.png"), dpi=300)
     plt.close(fig)
@@ -449,6 +474,7 @@ def plot_track_length_hist(
     discarded_lengths: list,
     label: str,
     output_dir: str,
+    n_ensemble: int,
 ) -> None:
     """
     Plot a histogram of retained vs discarded track lengths.
@@ -475,7 +501,7 @@ def plot_track_length_hist(
     ax.set_title(f"{label} : Track Length Distribution")
     ax.set_xlabel("Track length (frames)")
     ax.set_ylabel("Count")
-    ax.legend()
+    apply_legend(ax)
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, f"{label}_track_length_hist.png"), dpi=300)
     plt.close(fig)

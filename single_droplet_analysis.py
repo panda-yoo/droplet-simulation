@@ -82,7 +82,7 @@ from analysis.psd import compute_psd_components, fit_psd_powerlaw
 from analysis.trajectories import load_positions
 
 # ── Typography ───────────────────────────────────────────────────────────────
-from analysis.plot_style import set_publication_style, StyleTokens, apply_grid, get_droplet_color
+from analysis.plot_style import set_publication_style, StyleTokens, apply_grid, get_droplet_color, add_diffusive_line, add_ballistic_line, add_zero_line, apply_legend
 set_publication_style()
 
 __all__ = ["SingleDropletAnalysisResult", "analyze_single_droplet", "analyze_all_droplets"]
@@ -213,23 +213,33 @@ def _make_summary_figure(
     tau_seconds: NDArray[np.floating],
     msd: NDArray[np.floating],
     alpha: float,
+    alpha_err: float,
+    r2_msd: float,
     fit_line_full: NDArray[np.floating],
     d_alpha: NDArray[np.floating],
     tau_vacf_seconds: NDArray[np.floating],
     vacf_norm: NDArray[np.floating],
     tau_p: float,
+    tau_p_err: float,
+    r2_vacf: float,
     tau_p_fit: NDArray[np.floating],
     vacf_fit_curve: NDArray[np.floating],
     tau_orient_seconds: NDArray[np.floating],
     orient_corr: NDArray[np.floating],
     tau_r: float,
+    tau_r_err: float,
+    r2_orient: float,
     tau_r_fit: NDArray[np.floating],
     orient_fit_curve: NDArray[np.floating],
     freq_psd: NDArray[np.floating],
     psd_vx: NDArray[np.floating],
     psd_vy: NDArray[np.floating],
     beta_x: float,
+    bx_err: float,
+    r2_bx: float,
     beta_y: float,
+    by_err: float,
+    r2_by: float,
     fit_freqs_x: NDArray[np.floating],
     fit_line_x: NDArray[np.floating],
     fit_freqs_y: NDArray[np.floating],
@@ -277,7 +287,7 @@ def _make_summary_figure(
     ax1.set_xlabel("x (px)")
     ax1.set_ylabel("y (px)")
     ax1.set_aspect("equal")
-    ax1.legend(loc="best")
+    apply_legend(ax1)
     apply_grid(ax1, alpha=0.25)
 
     # ── (2) MSD log-log ───────────────────────────────────────────────────────
@@ -288,13 +298,13 @@ def _make_summary_figure(
             tau_seconds[fit_mask],
             fit_line_full[fit_mask],
             "k:",
-            lw=2.0,
-            label=rf"$\tau^{{{_safe_label(alpha)}}}$",
+            lw=2.5,
+            label=rf"Fit ($\alpha = {_safe_label(alpha)} \pm {_safe_label(alpha_err)}$, $R^2 = {_safe_label(r2_msd)}$)",
         )
     ax2.set_title(rf"MSD  ($\alpha$ = {_safe_label(alpha)})")
     ax2.set_xlabel(r"Lag time $\tau$ (s)")
     ax2.set_ylabel(r"MSD (px²)")
-    ax2.legend()
+    apply_legend(ax2)
     apply_grid(ax2, alpha=0.25, which="both")
 
     # ── (3) Local MSD exponent ────────────────────────────────────────────────
@@ -322,13 +332,13 @@ def _make_summary_figure(
         if np.any(mask):
             ax4.plot(
                 tau_p_fit[mask], vacf_fit_curve[mask],
-                "k--", lw=1.5,
-                label=rf"$\tau_p$ = {_safe_label(tau_p)} s",
+                "k--", lw=2.5,
+                label=rf"Fit ($\tau_p = {_safe_label(tau_p)} \pm {_safe_label(tau_p_err)}\,\mathrm{{s}}$, $R^2 = {_safe_label(r2_vacf)}$)",
             )
     ax4.set_title(rf"VACF  ($\tau_p$ = {_safe_label(tau_p)} s)")
     ax4.set_xlabel(r"Lag time $\tau$ (s)")
     ax4.set_ylabel(r"$C_v(\tau)/C_v(0)$")
-    ax4.legend()
+    apply_legend(ax4)
     apply_grid(ax4, alpha=0.25)
 
     # ── (5) Orientation correlation ───────────────────────────────────────────
@@ -337,13 +347,13 @@ def _make_summary_figure(
     if len(tau_r_fit) > 0 and np.isfinite(tau_r):
         ax5.plot(
             tau_r_fit, orient_fit_curve,
-            "k--", lw=1.5,
-            label=rf"$\tau_r$ = {_safe_label(tau_r)} s",
+            "k--", lw=2.5,
+            label=rf"Fit ($\tau_r = {_safe_label(tau_r)} \pm {_safe_label(tau_r_err)}\,\mathrm{{s}}$, $R^2 = {_safe_label(r2_orient)}$)",
         )
     ax5.set_title(rf"Orientation Corr.  ($\tau_r$ = {_safe_label(tau_r)} s)")
     ax5.set_xlabel(r"Lag time $\tau$ (s)")
     ax5.set_ylabel(r"$C_\theta(\tau)$")
-    ax5.legend()
+    apply_legend(ax5)
     apply_grid(ax5, alpha=0.25)
 
     # ── (6) PSD vx and vy ────────────────────────────────────────────────────
@@ -351,11 +361,11 @@ def _make_summary_figure(
         ax6.loglog(freq_psd, psd_vx, color=StyleTokens.PSD_X, alpha=0.8, label=r"$S_{v_x}$")
         ax6.loglog(freq_psd, psd_vy, color=StyleTokens.PSD_Y, alpha=0.8, label=r"$S_{v_y}$")
         if len(fit_freqs_x) > 0 and np.isfinite(beta_x):
-            ax6.loglog(fit_freqs_x, fit_line_x, "b:", lw=1.8,
-                       label=rf"$f^{{-{_safe_label(beta_x, '.2f')}}}$ (x)")
+            ax6.loglog(fit_freqs_x, fit_line_x, "k--", lw=2.5,
+                       label=rf"vx Fit ($\beta = {_safe_label(beta_x)} \pm {_safe_label(bx_err)}$, $R^2 = {_safe_label(r2_bx)}$)")
         if len(fit_freqs_y) > 0 and np.isfinite(beta_y):
-            ax6.loglog(fit_freqs_y, fit_line_y, "r:", lw=1.8,
-                       label=rf"$f^{{-{_safe_label(beta_y, '.2f')}}}$ (y)")
+            ax6.loglog(fit_freqs_y, fit_line_y, "k:", lw=2.5,
+                       label=rf"vy Fit ($\beta = {_safe_label(beta_y)} \pm {_safe_label(by_err)}$, $R^2 = {_safe_label(r2_by)}$)")
         ax6.set_xlabel("Frequency (Hz)")
         ax6.set_ylabel(r"$S_v(f)$")
     else:
@@ -511,7 +521,7 @@ def analyze_single_droplet(
         else vacf_raw.copy()
     )
 
-    tau_p, tau_p_err, tau_p_fit, vacf_fit_curve = fit_vacf_exponential(
+    tau_p, tau_p_err, r2_vacf, tau_p_fit, vacf_fit_curve = fit_vacf_exponential(
         tau_vacf_seconds, vacf_norm,
         max_fit_fraction=vacf_max_fit_fraction,
     )
@@ -521,7 +531,7 @@ def analyze_single_droplet(
     tau_orient = np.arange(len(orient_corr))
     tau_orient_seconds = tau_orient * dt
 
-    tau_r, tau_r_err, tau_r_fit, orient_fit_curve = fit_orientation_persistence(
+    tau_r, tau_r_err, r2_orient, tau_r_fit, orient_fit_curve = fit_orientation_persistence(
         tau_orient_seconds, orient_corr,
         max_fit_fraction=orient_max_fit_fraction,
     )
@@ -548,23 +558,33 @@ def analyze_single_droplet(
         tau_seconds=tau_seconds,
         msd=msd,
         alpha=alpha,
+        alpha_err=alpha_err,
+        r2_msd=r2_msd,
         fit_line_full=fit_line_full,
         d_alpha=d_alpha,
         tau_vacf_seconds=tau_vacf_seconds,
         vacf_norm=vacf_norm,
         tau_p=tau_p,
+        tau_p_err=tau_p_err,
+        r2_vacf=r2_vacf,
         tau_p_fit=tau_p_fit,
         vacf_fit_curve=vacf_fit_curve,
         tau_orient_seconds=tau_orient_seconds,
         orient_corr=orient_corr,
         tau_r=tau_r,
+        tau_r_err=tau_r_err,
+        r2_orient=r2_orient,
         tau_r_fit=tau_r_fit,
         orient_fit_curve=orient_fit_curve,
         freq_psd=freq_psd,
         psd_vx=psd_vx,
         psd_vy=psd_vy,
         beta_x=beta_x,
+        bx_err=bx_err,
+        r2_bx=r2_bx,
         beta_y=beta_y,
+        by_err=by_err,
+        r2_by=r2_by,
         fit_freqs_x=fit_freqs_x,
         fit_line_x=fit_line_x,
         fit_freqs_y=fit_freqs_y,
@@ -699,7 +719,7 @@ def analyze_all_droplets(
         tau_vacf = np.arange(len(vacf_raw))
         tau_vacf_seconds = tau_vacf * dt
         vacf_norm = vacf_raw / vacf_raw[0] if vacf_raw[0] != 0 else vacf_raw.copy()
-        tau_p, tau_p_err, tau_p_fit, vacf_fit_curve = fit_vacf_exponential(tau_vacf_seconds, vacf_norm, max_fit_fraction=vacf_max_fit_fraction)
+        tau_p, tau_p_err, r2_vacf, tau_p_fit, vacf_fit_curve = fit_vacf_exponential(tau_vacf_seconds, vacf_norm, max_fit_fraction=vacf_max_fit_fraction)
         curves_vacf[did] = (tau_vacf_seconds, vacf_norm, tau_p)
         
         # Orientation
@@ -707,7 +727,7 @@ def analyze_all_droplets(
         orient_corr = compute_orientation_corr(theta)
         tau_orient = np.arange(len(orient_corr))
         tau_orient_seconds = tau_orient * dt
-        tau_r, tau_r_err, tau_r_fit, orient_fit_curve = fit_orientation_persistence(tau_orient_seconds, orient_corr, max_fit_fraction=orient_max_fit_fraction)
+        tau_r, tau_r_err, r2_orient, tau_r_fit, orient_fit_curve = fit_orientation_persistence(tau_orient_seconds, orient_corr, max_fit_fraction=orient_max_fit_fraction)
         curves_orient[did] = (tau_orient_seconds, orient_corr, tau_r)
         
         # PSD
@@ -748,7 +768,8 @@ def analyze_all_droplets(
         ax.plot(pos[:, 0], pos[:, 1], lw=1.5, color=color, label=f"Droplet {did}")
         ax.plot(*pos[0], "o", ms=6, color=color)
         ax.plot(*pos[-1], "s", ms=6, color=color)
-    ax.set_title(f"{experiment_name}\nTrajectory Comparison")
+    n_ensemble = len(positions_dict)
+    ax.set_title(f"{experiment_name} : Trajectory Comparison\nN = {n_ensemble} droplets")
     ax.set_xlabel("x (px)")
     ax.set_ylabel("y (px)")
     ax.set_aspect("equal")
@@ -762,7 +783,7 @@ def analyze_all_droplets(
     fig, ax = plt.subplots(figsize=(8, 6))
     for did, (t_sec, msd, a) in curves_msd.items():
         ax.loglog(t_sec, msd, color=get_droplet_color(did), label=f"Droplet {did} (α={_safe_label(a, '.2f')})")
-    ax.set_title("MSD Comparison")
+    ax.set_title(f"{experiment_name} : MSD Comparison\nN = {n_ensemble} droplets")
     ax.set_xlabel(r"Lag time $\tau$ (s)")
     ax.set_ylabel(r"MSD (px²)")
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -778,7 +799,7 @@ def analyze_all_droplets(
         ax.semilogx(t_sec[valid], d_a[valid], color=get_droplet_color(did), label=f"Droplet {did} (α={_safe_label(a, '.2f')})")
     ax.axhline(1.0, ls="--", color="gray", lw=1.5, label="Diffusive (α=1)")
     ax.axhline(2.0, ls=":", color="gray", lw=1.5, label="Ballistic (α=2)")
-    ax.set_title("Local MSD Exponent Comparison")
+    ax.set_title(f"{experiment_name} : Local MSD Exponent Comparison\nN = {n_ensemble} droplets")
     ax.set_xlabel(r"Lag time $\tau$ (s)")
     ax.set_ylabel(r"$\alpha(\tau)$")
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -792,8 +813,8 @@ def analyze_all_droplets(
     for did, (t_sec, vacf_n, tp) in curves_vacf.items():
         cut = max(len(t_sec) // 4, 1)
         ax.plot(t_sec[:cut], vacf_n[:cut], color=get_droplet_color(did), label=f"Droplet {did} (τp={_safe_label(tp, '.1f')} s)")
-    ax.axhline(0, ls="--", color="k", lw=1.0)
-    ax.set_title("VACF Comparison")
+    add_zero_line(ax)
+    ax.set_title(f"{experiment_name} : VACF Comparison\nN = {n_ensemble} droplets")
     ax.set_xlabel(r"Lag time $\tau$ (s)")
     ax.set_ylabel(r"$C_v(\tau)/C_v(0)$")
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -806,8 +827,8 @@ def analyze_all_droplets(
     fig, ax = plt.subplots(figsize=(8, 6))
     for did, (t_sec, or_corr, tr) in curves_orient.items():
         ax.plot(t_sec, or_corr, color=get_droplet_color(did), label=f"Droplet {did} (τr={_safe_label(tr, '.1f')} s)")
-    ax.axhline(0, ls="--", color="k", lw=1.0)
-    ax.set_title("Orientation Correlation Comparison")
+    add_zero_line(ax)
+    ax.set_title(f"{experiment_name} : Orientation Correlation Comparison\nN = {n_ensemble} droplets")
     ax.set_xlabel(r"Lag time $\tau$ (s)")
     ax.set_ylabel(r"$C_\theta(\tau)$")
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -821,7 +842,7 @@ def analyze_all_droplets(
     for did, (f_psd, p_x, bx) in curves_psdx.items():
         if len(f_psd) > 0:
             ax.loglog(f_psd, p_x, color=get_droplet_color(did), label=f"Droplet {did} (βx={_safe_label(bx, '.2f')})")
-    ax.set_title("PSD($v_x$) Comparison")
+    ax.set_title(f"{experiment_name} : PSD(vx)\nN = {n_ensemble} droplets")
     ax.set_xlabel("Frequency (Hz)")
     ax.set_ylabel(r"$S_{v_x}(f)$")
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -835,7 +856,7 @@ def analyze_all_droplets(
     for did, (f_psd, p_y, by) in curves_psdy.items():
         if len(f_psd) > 0:
             ax.loglog(f_psd, p_y, color=get_droplet_color(did), label=f"Droplet {did} (βy={_safe_label(by, '.2f')})")
-    ax.set_title("PSD($v_y$) Comparison")
+    ax.set_title(f"{experiment_name} : PSD(vy)\nN = {n_ensemble} droplets")
     ax.set_xlabel("Frequency (Hz)")
     ax.set_ylabel(r"$S_{v_y}(f)$")
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')

@@ -28,13 +28,37 @@ The project uses a centralized style module: `analysis/plot_style.py`.
 * **Orientation Correlation**: `#d97706` (Orange)
 * **Fits**: `k:` (Black dotted line)
 
+### Reference Lines
+Use the following standard styling for reference lines defined in `plot_style.py`:
+* **Diffusive ($\alpha=1$)**: Gray dashed line
+* **Ballistic ($\alpha=2$)**: Gray dotted line, slightly transparent
+* **Zero correlation ($y=0$)**: Black dashed line
+
 ### Droplet Identification
 When plotting multiple droplets on the same axes, use `get_droplet_color(droplet_id)` from `plot_style.py`. This uses a deterministic hash mapping to the `tab10` categorical palette, ensuring visual consistency across all comparisons.
 
-## Figure Conventions
+## Figure & Title Conventions
+
+### Strict Title Hierarchy
+All standalone, ensemble, comparison, and simulation figures must use a strict two-line title hierarchy describing the dataset, metric, fit parameters, and sample size:
+
+```
+[dataset_label] : [Metric Name]
+[parameter] = [value] ± [error] | N = [N] droplets
+```
+Example:
+```
+for_2.1_droplets : MSD
+α = 1.853 ± 0.012 | N = 4 droplets
+```
+
+### Legend Style
+Apply the `apply_legend(ax)` function to all plots to guarantee identical transparency and borders. Fit entries in legends must display relevant parameter values (e.g., $\alpha$, $\beta$, $\tau_p$, $\tau_r$) and $R^2$ scores when applicable.
+
+### Grids & Markers
 * **Grids**: All plots should use a faint background grid: `ax.grid(True, alpha=0.25)`. A helper function `apply_grid(ax)` is provided.
 * **Line Widths**: Default curve line width is `1.5`. Auxiliary/fit lines should match or be slightly thicker (`2.0`) with dashed/dotted styles.
-* **Markers**: Trajectory plots should explicitly mark the start with a circle (`"o"`, ms=6 or 7) and the end with a square (`"s"`, ms=6 or 7).
+* **Markers**: Trajectory plots should explicitly mark the start with a circle (`"o"`, ms=6) and the end with a square (`"s"`, ms=6).
 
 ## Simulation Conventions
 Simulation plots must mimic experimental analysis figures exactly:

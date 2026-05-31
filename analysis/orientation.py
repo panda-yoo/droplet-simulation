@@ -102,7 +102,7 @@ def fit_orientation_persistence(
     tau: NDArray[np.floating],
     corr: NDArray[np.floating],
     max_fit_fraction: Optional[float] = None,
-) -> Tuple[float, float, NDArray[np.floating], NDArray[np.floating]]:
+) -> Tuple[float, float, float, NDArray[np.floating], NDArray[np.floating]]:
     """
     Fit the orientation correlation to ``C(t) = exp(-t / τ_r)`` and return
     the rotational persistence time τ_r.
@@ -123,6 +123,8 @@ def fit_orientation_persistence(
         Fitted rotational persistence time (same units as ``tau``).
     tau_r_err : float
         Standard error of τ_r from the covariance matrix.
+    r2 : float
+        R-squared of the fit.
     tau_fit : ndarray
         Lag values used in the fit.
     fit_curve : ndarray
@@ -146,7 +148,7 @@ def fit_orientation_persistence(
     corr_fit = corr[:stop]
 
     if len(tau_fit) < 5:
-        return np.nan, np.nan, tau_fit, np.array([])
+        return np.nan, np.nan, np.nan, tau_fit, np.array([])
 
     try:
         popt, pcov = curve_fit(
@@ -156,13 +158,17 @@ def fit_orientation_persistence(
             p0=[float(tau_fit.max()) / 10.0],
         )
     except RuntimeError:
-        return np.nan, np.nan, tau_fit, np.array([])
+        return np.nan, np.nan, np.nan, tau_fit, np.array([])
 
     tau_r = float(popt[0])
     tau_r_err = float(np.sqrt(pcov[0, 0]))
     fit_curve = _model(tau_fit, tau_r)
+    
+    ss_res = np.sum((corr_fit - fit_curve) ** 2)
+    ss_tot = np.sum((corr_fit - np.mean(corr_fit)) ** 2)
+    r2 = 1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
 
-    return tau_r, tau_r_err, tau_fit, fit_curve
+    return tau_r, tau_r_err, r2, tau_fit, fit_curve
 
 
 # =========================================================

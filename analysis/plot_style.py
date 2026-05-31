@@ -26,12 +26,12 @@ def set_publication_style():
     """Apply standard typography and formatting to matplotlib."""
     matplotlib.rcParams.update({
         "font.family": "sans-serif",
-        "font.size": 11,
-        "axes.titlesize": 12,
-        "axes.labelsize": 11,
-        "legend.fontsize": 9,
-        "xtick.labelsize": 9,
-        "ytick.labelsize": 9,
+        "font.size": 18,
+        "axes.titlesize": 22,
+        "axes.labelsize": 18,
+        "legend.fontsize": 14,
+        "xtick.labelsize": 14,
+        "ytick.labelsize": 14,
         "lines.linewidth": 1.5,
         "figure.dpi": 150,
     })

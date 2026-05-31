@@ -178,7 +178,7 @@ def post_processing(
         tau_vacf, vacf_raw, vacf_norm = ensemble_vacf_analysis(data, dt)
         tau_vacf_seconds = tau_vacf * dt
 
-        tau_p, tau_p_err, tau_p_fit, vacf_fit_curve = fit_vacf_exponential(
+        tau_p, tau_p_err, r2_vacf, tau_p_fit, vacf_fit_curve = fit_vacf_exponential(
             tau_vacf_seconds,
             vacf_norm,
             max_fit_fraction=vacf_max_fit_fraction,
@@ -188,7 +188,7 @@ def post_processing(
         tau_orient, orient_corr = ensemble_orientation_corr_analysis(data, dt)
         tau_orient_seconds = tau_orient * dt
 
-        tau_r, tau_r_err, tau_r_fit, orient_fit_curve = fit_orientation_persistence(
+        tau_r, tau_r_err, r2_orient, tau_r_fit, orient_fit_curve = fit_orientation_persistence(
             tau_orient_seconds,
             orient_corr,
             max_fit_fraction=orient_max_fit_fraction,
@@ -220,46 +220,52 @@ def post_processing(
         plot_trajectories(data, label, output_dir, total_paths)
 
         plot_msd_loglog(
-            tau_seconds, ensemble_msd, alpha, fit_line_msd,
+            tau_seconds, ensemble_msd, alpha, alpha_err, r2_msd, fit_line_msd,
             label, output_dir, n_ensemble,
         )
 
         plot_local_msd_exponent(
-            tau_seconds, d_msd, alpha, label, output_dir, n_ensemble,
+            tau_seconds, d_msd, alpha, alpha_err, label, output_dir, n_ensemble,
         )
 
         if len(tau_weighted) > 0:
+            diagnostics_dir = os.path.join(output_dir, "diagnostics")
+            os.makedirs(diagnostics_dir, exist_ok=True)
             plot_msd_comparison(
                 tau_seconds, ensemble_msd,
                 tau_weighted_seconds, msd_weighted,
-                label, output_dir,
+                label, diagnostics_dir, n_ensemble,
             )
 
         plot_vacf(
             tau_vacf_seconds, vacf_norm, label, output_dir, n_ensemble,
             tau_p_fit=tau_p_fit, vacf_fit_curve=vacf_fit_curve, tau_p=tau_p,
+            tau_p_err=tau_p_err, r2=r2_vacf
         )
 
         plot_orientation_corr(
             tau_orient_seconds, orient_corr, label, output_dir, n_ensemble,
             tau_r_fit=tau_r_fit, orient_fit_curve=orient_fit_curve, tau_r=tau_r,
+            tau_r_err=tau_r_err, r2=r2_orient
         )
 
         if len(freq_psd) > 0:
             plot_psd_component(
                 freq_psd, ensemble_psd_vx,
-                beta_x, fit_freqs_x, fit_line_x,
+                beta_x, beta_x_err, r2_x, fit_freqs_x, fit_line_x,
                 "vx", label, output_dir, n_ensemble,
             )
             plot_psd_component(
                 freq_psd, ensemble_psd_vy,
-                beta_y, fit_freqs_y, fit_line_y,
+                beta_y, beta_y_err, r2_y, fit_freqs_y, fit_line_y,
                 "vy", label, output_dir, n_ensemble,
             )
 
         if lengths:
+            diagnostics_dir = os.path.join(output_dir, "diagnostics")
+            os.makedirs(diagnostics_dir, exist_ok=True)
             plot_track_length_hist(
-                retained_lengths, discarded_lengths, label, output_dir,
+                retained_lengths, discarded_lengths, label, diagnostics_dir, n_ensemble
             )
 
         # ── results txt ───────────────────────────────────

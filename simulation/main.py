@@ -27,7 +27,7 @@ from dolfinx.fem.petsc import LinearProblem
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from analysis.plot_style import set_publication_style, get_droplet_color, StyleTokens, apply_grid
+from analysis.plot_style import set_publication_style, get_droplet_color, StyleTokens, apply_grid, apply_legend
 import numpy as np
 import pyvista
 import ufl
@@ -315,8 +315,8 @@ def run_simulation():
     ax.set_ylim(0, 1)
     ax.set_aspect("equal")
     apply_grid(ax, alpha=0.25)
-    ax.set_title(f"{Ndrop} non-Markovian active droplets (2D)")
-    ax.legend()
+    ax.set_title(f"Simulation : Trajectories\nN = {Ndrop} droplets")
+    apply_legend(ax)
     fig.savefig(os.path.join(output, f"droplet_{Ndrop}_trajectories.png"), dpi=150)
     plt.close(fig)
 
