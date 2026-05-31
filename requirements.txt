@@ -1,0 +1,33 @@
+# Minimal pinned requirements for droplet-simulation analysis + tracking
+# Note: install PyTorch (CUDA) separately following https://pytorch.org/get-started/locally/
+
+numpy==1.24.4
+scipy==1.10.1
+statsmodels==0.14.0
+matplotlib==3.7.1
+pandas==2.0.3
+scikit-learn==1.2.2
+
+# YOLO/tracking
+ultralytics>=8.0.0
+
+# Jupyter (optional)
+notebook>=6.5
+
+# Optional: image/video handling
+opencv-python>=4.7.0
+imageio>=2.31.1
+
+# NOTE on PyTorch / CUDA:
+# Do NOT pip-install `torch` here if you need a CUDA-enabled build. Instead, follow
+# the official instructions to install the wheel that matches your CUDA toolkit.
+# Example (replace with the version / CUDA that matches your machine):
+#   python -m pip install "torch==2.2.0+cu118" "torchvision==0.15.2+cu118" -f https://download.pytorch.org/whl/cu118/torch_stable.html
+# Or use the command generator at: https://pytorch.org/get-started/locally/
+
+# To create a virtualenv and install these requirements (CPU-only):
+#   python3 -m venv .venv
+#   source .venv/bin/activate
+#   pip install --upgrade pip
+#   pip install -r requirements.txt
+# Then follow the PyTorch instructions above to install the correct torch build.

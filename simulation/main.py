@@ -27,6 +27,7 @@ from dolfinx.fem.petsc import LinearProblem
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from analysis.plot_style import set_publication_style, get_droplet_color, StyleTokens, apply_grid
 import numpy as np
 import pyvista
 import ufl
@@ -294,23 +295,30 @@ def run_simulation():
     # =========================================================
     # Plot trajectories
     # =========================================================
-    plt.figure(figsize=(8, 8))
-    colors = plt.cm.tab10(np.linspace(0, 1, Ndrop))
+    set_publication_style()
+    fig, ax = plt.subplots(figsize=(8, 8))
 
     for i in range(Ndrop):
-        plt.plot(
+        c = get_droplet_color(i + 1)
+        ax.plot(
             trajectory_x[i],
             trajectory_y[i],
-            linewidth=1.0,
-            color=colors[i % len(colors)],
+            linewidth=1.5,
+            color=c,
+            label=f"Droplet {i+1}"
         )
+        # Add start and end markers
+        ax.plot(trajectory_x[i][0], trajectory_y[i][0], "o", color=c, ms=6)
+        ax.plot(trajectory_x[i][-1], trajectory_y[i][-1], "s", color=c, ms=6)
 
-    plt.xlim(0, 1)
-    plt.ylim(0, 1)
-    plt.gca().set_aspect("equal")
-    plt.title(f"{Ndrop} non-Markovian active droplets (2D)")
-    plt.savefig(os.path.join(output, f"droplet_{Ndrop}_trajectories.png"), dpi=150)
-    plt.show()
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_aspect("equal")
+    apply_grid(ax, alpha=0.25)
+    ax.set_title(f"{Ndrop} non-Markovian active droplets (2D)")
+    ax.legend()
+    fig.savefig(os.path.join(output, f"droplet_{Ndrop}_trajectories.png"), dpi=150)
+    plt.close(fig)
 
     save_trajectory_csv(
         trajectory_x=trajectory_x,

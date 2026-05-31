@@ -1,9 +1,19 @@
 === for_2.2_droplets ===
 
-Total paths detected       = 10
-Consistent paths (used)    = 6
-Ensemble average N         = 6
+Total paths detected        = 10
+Retained tracks             = 6
+Discarded tracks            = 4
+Consistent paths (used)     = 6
+Ensemble average N          = 6
 
-MSD exponent alpha         = 1.183588986812771
-PSD exponent beta_x        = 0.7473442859404655
-PSD exponent beta_y        = 0.7656781923038526
+MSD exponent alpha          = 1.6481997472138126 ± 0.005330541347335722  R2 = 0.9958231436973012
+PSD exponent beta_x         = 0.5595185711761729 ± 0.040014409935603  R2 = 0.6730026658674677
+PSD exponent beta_y         = 0.5614413507745221 ± 0.03375433892331375  R2 = 0.7443914382219414
+Velocity persistence tau_p  = 17.13684316690077 ± 0.5564657478723438 s
+Rotational persistence tau_r = 13.963235398735357 ± 0.2636340608259082 s
+
+--- Bias diagnostics ---
+Retained mean speed   = 0.713346
+Retained std speed    = 0.0723816
+Discarded mean speed  = 0.882722
+Discarded std speed   = 0.428712

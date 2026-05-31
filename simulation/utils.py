@@ -12,6 +12,8 @@ Contents
 
 import numpy as np
 import csv
+from pathlib import Path
+from typing import List
 
 
 # =========================================================
@@ -58,17 +60,31 @@ def update_paper_parameters(t, R0, Rshrink, Rmin, delta, eta):
 # =========================================================
 
 def save_trajectory_csv(
-    trajectory_x,
-    trajectory_y,
-    dt_val,
-    Ndrop,
-    output_path,
-):
+    trajectory_x: List[List[float]],
+    trajectory_y: List[List[float]],
+    dt_val: float,
+    Ndrop: int,
+    output_path: str | Path,
+) -> None:
     """
-    Write per-droplet positions, velocities, and heading angles
-    to a CSV file.
+    Write per-droplet positions, velocities, and heading angles to CSV.
 
-    Columns: droplet id, x, y, vx, vy, theta
+    Parameters
+    ----------
+    trajectory_x : list of list
+        Per-droplet x-positions over time.
+    trajectory_y : list of list
+        Per-droplet y-positions over time.
+    dt_val : float
+        Time step between frames.
+    Ndrop : int
+        Number of droplets.
+    output_path : str or Path
+        Destination CSV path.
+
+    Returns
+    -------
+    None
     """
     rows = []
 
@@ -82,15 +98,18 @@ def save_trajectory_csv(
             x = x_traj[j]
             y = y_traj[j]
 
-            # Velocity and angle
-            if j == 0:
-                vx = 0.0
-                vy = 0.0
-                theta = 0.0
-            else:
+            # Velocity and angle (forward difference)
+            if j < len(x_traj) - 1:
+                vx = (x_traj[j + 1] - x_traj[j]) / dt_val
+                vy = (y_traj[j + 1] - y_traj[j]) / dt_val
+            elif len(x_traj) > 1:
                 vx = (x_traj[j] - x_traj[j - 1]) / dt_val
                 vy = (y_traj[j] - y_traj[j - 1]) / dt_val
-                theta = np.arctan2(vy, vx)
+            else:
+                vx = 0.0
+                vy = 0.0
+
+            theta = np.arctan2(vy, vx) if (vx != 0.0 or vy != 0.0) else 0.0
 
             rows.append([
                 i,
