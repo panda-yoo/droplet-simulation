@@ -202,6 +202,99 @@ def _safe_label(x: float, fmt: str = ".3f") -> str:
     return f"{x:{fmt}}" if np.isfinite(x) else "N/A"
 
 
+
+
+# ============================================================================
+# utils for single plot 
+# ============================================================================
+def save_subplot_clean(fig, ax, filename, dpi=300, global_alpha=None):
+
+    new_fig = plt.figure(figsize=(8, 6))
+    new_ax = new_fig.add_subplot(111)
+
+    # Copy all lines
+    for line in ax.lines:
+        label = line.get_label()
+
+        # Skip the reference lines for Local MSD
+        if filename == "Local_MSD_Exponent" and (
+            "Global" in label or
+            "Diffusive" in label or
+            "Ballistic" in label
+        ):
+            continue
+
+        new_ax.plot(
+            line.get_xdata(),
+            line.get_ydata(),
+            linestyle=line.get_linestyle(),
+            linewidth=line.get_linewidth(),
+            color=line.get_color(),
+            marker=line.get_marker(),
+            markersize=line.get_markersize(),
+            alpha=line.get_alpha(),
+            label=label,
+        )
+
+    # Recreate Local MSD reference lines
+    if filename == "Local_MSD_Exponent" and global_alpha is not None:
+
+        xmin, xmax = ax.get_xlim()
+
+        new_ax.hlines(
+            global_alpha,
+            xmin,
+            xmax,
+            colors="k",
+            linestyles="--",
+            linewidth=1.5,
+            label=rf"Global $\alpha$ = {global_alpha:.3f}",
+        )
+
+        new_ax.hlines(
+            1.0,
+            xmin,
+            xmax,
+            colors="gray",
+            linestyles=":",
+            linewidth=1.2,
+            label="Diffusive (α=1)",
+        )
+
+        new_ax.hlines(
+            2.0,
+            xmin,
+            xmax,
+            colors="lightgray",
+            linestyles=":",
+            linewidth=1.2,
+            label="Ballistic (α=2)",
+        )
+
+    new_ax.set_title(ax.get_title(), fontsize=ax.title.get_fontsize())
+    new_ax.set_xlabel(ax.get_xlabel(), fontsize=ax.xaxis.label.get_fontsize())
+    new_ax.set_ylabel(ax.get_ylabel(), fontsize=ax.yaxis.label.get_fontsize())
+
+    new_ax.set_xscale(ax.get_xscale())
+    new_ax.set_yscale(ax.get_yscale())
+
+    new_ax.set_xlim(ax.get_xlim())
+    new_ax.set_ylim(ax.get_ylim())
+
+    new_ax.grid(True, alpha=0.3)
+
+    if ax.get_legend() is not None:
+        new_ax.legend()
+
+    new_fig.tight_layout()
+
+    new_fig.savefig(
+        filename,
+        dpi=dpi,
+        bbox_inches="tight",
+    )
+
+    plt.close(new_fig)
 # ============================================================================
 # Core plotting
 # ============================================================================
@@ -279,6 +372,7 @@ def _make_summary_figure(
     ax5 = fig.add_subplot(gs[1, 1])
     ax6 = fig.add_subplot(gs[1, 2])
 
+    
     # ── (1) Trajectory ───────────────────────────────────────────────────────
     ax1.plot(positions[:, 0], positions[:, 1], lw=1.0, color=StyleTokens.TRAJECTORY, alpha=0.85)
     ax1.plot(*positions[0], "o", ms=7, color=StyleTokens.START, label="Start", zorder=5)
@@ -377,7 +471,22 @@ def _make_summary_figure(
     )
     ax6.legend(fontsize=8)
     apply_grid(ax6, alpha=0.25, which="both")
+    # ==================================================== temp plots ====================================================
+    output_dir = Path("./individual_plots")
+    output_dir.mkdir(exist_ok=True)
 
+    save_subplot_clean(fig, ax1, "Trajectory.png")
+    save_subplot_clean(fig, ax2, "MSD.png")
+    save_subplot_clean(
+    fig,
+    ax3,
+    "Local_MSD_Exponent",
+    global_alpha=alpha
+    )
+    save_subplot_clean(fig, ax4, "VACF.png")
+    save_subplot_clean(fig, ax5, "Orientation_Correlation.png")
+    save_subplot_clean(fig, ax6, "PSD.png")
+        
     return fig
 
 
@@ -702,12 +811,34 @@ def analyze_all_droplets(
         speed = np.sqrt(v[:, 0] ** 2 + v[:, 1] ** 2)
         mean_speed = float(np.mean(speed))
         rms_speed = float(np.sqrt(np.mean(speed ** 2)))
+        median_speed = float(np.median(speed))
+        speed_std = float(np.std(speed, ddof=1)) if len(speed) > 1 else float(np.nan)
+        speed_cv = float(speed_std / mean_speed) if mean_speed != 0 else float(np.nan)
+        max_speed = float(np.max(speed)) if len(speed) > 0 else float(np.nan)
         
         # MSD
         msd = compute_msd(pos, lag_fraction=msd_lag_fraction)
         alpha, alpha_err, r2_msd, fit_line_full = fit_msd_power_law(msd, fit_fraction=msd_fit_fraction)
         tau_msd = np.arange(1, len(msd) + 1)
         tau_seconds = tau_msd * dt
+        msd_max_lag_frames = len(msd)
+        msd_max_lag_seconds = msd_max_lag_frames * dt
+        max_fit_frames = max(1, int(msd_fit_fraction * msd_max_lag_frames)) if msd_max_lag_frames > 0 else 0
+        tau_msd_fit = tau_msd[:max_fit_frames]
+        msd_fit = msd[:max_fit_frames]
+        msd_fit_mask = (tau_msd_fit > 0) & (msd_fit > 0)
+        msd_fit_frames = int(msd_fit_mask.sum())
+        msd_fit_seconds = msd_fit_frames * dt
+        if msd_fit_frames > 0:
+            alpha_fit_start_frame = int(tau_msd_fit[msd_fit_mask][0])
+            alpha_fit_end_frame = int(tau_msd_fit[msd_fit_mask][-1])
+            alpha_fit_start_seconds = alpha_fit_start_frame * dt
+            alpha_fit_end_seconds = alpha_fit_end_frame * dt
+        else:
+            alpha_fit_start_frame = float(np.nan)
+            alpha_fit_end_frame = float(np.nan)
+            alpha_fit_start_seconds = float(np.nan)
+            alpha_fit_end_seconds = float(np.nan)
         curves_msd[did] = (tau_seconds, msd, alpha)
         
         # Local alpha
@@ -720,6 +851,21 @@ def analyze_all_droplets(
         tau_vacf_seconds = tau_vacf * dt
         vacf_norm = vacf_raw / vacf_raw[0] if vacf_raw[0] != 0 else vacf_raw.copy()
         tau_p, tau_p_err, r2_vacf, tau_p_fit, vacf_fit_curve = fit_vacf_exponential(tau_vacf_seconds, vacf_norm, max_fit_fraction=vacf_max_fit_fraction)
+        vacf_total_frames = len(vacf_norm)
+        vacf_total_seconds = vacf_total_frames * dt
+        vacf_fit_frames = int(len(tau_p_fit))
+        vacf_fit_seconds = vacf_fit_frames * dt
+        vacf_fit_fraction = (vacf_fit_frames / vacf_total_frames) if vacf_total_frames > 0 else float(np.nan)
+        if vacf_fit_frames > 0:
+            tau_p_fit_start_seconds = float(tau_p_fit[0])
+            tau_p_fit_end_seconds = float(tau_p_fit[-1])
+            tau_p_fit_start_frame = int(round(tau_p_fit_start_seconds / dt))
+            tau_p_fit_end_frame = int(round(tau_p_fit_end_seconds / dt))
+        else:
+            tau_p_fit_start_frame = float(np.nan)
+            tau_p_fit_end_frame = float(np.nan)
+            tau_p_fit_start_seconds = float(np.nan)
+            tau_p_fit_end_seconds = float(np.nan)
         curves_vacf[did] = (tau_vacf_seconds, vacf_norm, tau_p)
         
         # Orientation
@@ -728,6 +874,21 @@ def analyze_all_droplets(
         tau_orient = np.arange(len(orient_corr))
         tau_orient_seconds = tau_orient * dt
         tau_r, tau_r_err, r2_orient, tau_r_fit, orient_fit_curve = fit_orientation_persistence(tau_orient_seconds, orient_corr, max_fit_fraction=orient_max_fit_fraction)
+        orient_total_frames = len(orient_corr)
+        orient_total_seconds = orient_total_frames * dt
+        orient_fit_frames = int(len(tau_r_fit))
+        orient_fit_seconds = orient_fit_frames * dt
+        orient_fit_fraction = (orient_fit_frames / orient_total_frames) if orient_total_frames > 0 else float(np.nan)
+        if orient_fit_frames > 0:
+            tau_r_fit_start_seconds = float(tau_r_fit[0])
+            tau_r_fit_end_seconds = float(tau_r_fit[-1])
+            tau_r_fit_start_frame = int(round(tau_r_fit_start_seconds / dt))
+            tau_r_fit_end_frame = int(round(tau_r_fit_end_seconds / dt))
+        else:
+            tau_r_fit_start_frame = float(np.nan)
+            tau_r_fit_end_frame = float(np.nan)
+            tau_r_fit_start_seconds = float(np.nan)
+            tau_r_fit_end_seconds = float(np.nan)
         curves_orient[did] = (tau_orient_seconds, orient_corr, tau_r)
         
         # PSD
@@ -737,6 +898,21 @@ def analyze_all_droplets(
             beta_y, by_err, r2_by, fit_freqs_y, fit_line_y = fit_psd_powerlaw(freq_psd, psd_vy, fmin=psd_fmin, fmax=psd_fmax)
         else:
             beta_x = beta_y = float(np.nan)
+            bx_err = by_err = float(np.nan)
+            r2_bx = r2_by = float(np.nan)
+            fit_freqs_x = np.array([])
+            fit_freqs_y = np.array([])
+        psd_points_total = int(len(freq_psd))
+        psd_points_fit_x = int(len(fit_freqs_x))
+        psd_points_fit_y = int(len(fit_freqs_y))
+        psd_bandwidth = psd_fmax - psd_fmin
+        fit_freqs_all = np.concatenate([fit_freqs_x, fit_freqs_y]) if (psd_points_fit_x + psd_points_fit_y) > 0 else np.array([])
+        if len(fit_freqs_all) > 0:
+            beta_fit_fmin = float(np.min(fit_freqs_all))
+            beta_fit_fmax = float(np.max(fit_freqs_all))
+        else:
+            beta_fit_fmin = float(np.nan)
+            beta_fit_fmax = float(np.nan)
         curves_psdx[did] = (freq_psd, psd_vx, beta_x)
         curves_psdy[did] = (freq_psd, psd_vy, beta_y)
         
@@ -744,15 +920,73 @@ def analyze_all_droplets(
         records.append({
             "droplet_id": did,
             "track_length": n_frames,
+            "dt": float(dt),
+            "fps": float(1.0 / dt),
+            "track_length_frames": n_frames,
+            "track_length_seconds": n_frames * dt,
             "mean_speed": mean_speed,
             "rms_speed": rms_speed,
+            "median_speed": median_speed,
+            "speed_std": speed_std,
+            "speed_cv": speed_cv,
+            "max_speed": max_speed,
+            "msd_lag_fraction": msd_lag_fraction,
+            "msd_fit_fraction": msd_fit_fraction,
+            "msd_max_lag_frames": msd_max_lag_frames,
+            "msd_max_lag_seconds": msd_max_lag_seconds,
+            "msd_fit_frames": msd_fit_frames,
+            "msd_fit_seconds": msd_fit_seconds,
+            "alpha_fit_start_frame": alpha_fit_start_frame,
+            "alpha_fit_end_frame": alpha_fit_end_frame,
+            "alpha_fit_start_seconds": alpha_fit_start_seconds,
+            "alpha_fit_end_seconds": alpha_fit_end_seconds,
             "alpha": float(alpha),
             "alpha_error": float(alpha_err),
             "alpha_r2": float(r2_msd),
             "tau_p": float(tau_p),
+            "tau_p_error": float(tau_p_err),
+            "tau_p_r2": float(r2_vacf),
+            "vacf_fit_fraction": vacf_fit_fraction,
+            "vacf_total_frames": vacf_total_frames,
+            "vacf_total_seconds": vacf_total_seconds,
+            "vacf_fit_frames": vacf_fit_frames,
+            "vacf_fit_seconds": vacf_fit_seconds,
+            "tau_p_fit_start_frame": tau_p_fit_start_frame,
+            "tau_p_fit_end_frame": tau_p_fit_end_frame,
+            "tau_p_fit_start_seconds": tau_p_fit_start_seconds,
+            "tau_p_fit_end_seconds": tau_p_fit_end_seconds,
             "tau_r": float(tau_r),
+            "tau_r_error": float(tau_r_err),
+            "tau_r_r2": float(r2_orient),
+            "orient_fit_fraction": orient_fit_fraction,
+            "orient_total_frames": orient_total_frames,
+            "orient_total_seconds": orient_total_seconds,
+            "orient_fit_frames": orient_fit_frames,
+            "orient_fit_seconds": orient_fit_seconds,
+            "tau_r_fit_start_frame": tau_r_fit_start_frame,
+            "tau_r_fit_end_frame": tau_r_fit_end_frame,
+            "tau_r_fit_start_seconds": tau_r_fit_start_seconds,
+            "tau_r_fit_end_seconds": tau_r_fit_end_seconds,
+            "psd_fmin": psd_fmin,
+            "psd_fmax": psd_fmax,
+            "psd_bandwidth": psd_bandwidth,
+            "psd_points_total": psd_points_total,
+            "psd_points_fit_x": psd_points_fit_x,
+            "psd_points_fit_y": psd_points_fit_y,
             "beta_x": float(beta_x),
             "beta_y": float(beta_y),
+            "beta_x_error": float(bx_err),
+            "beta_y_error": float(by_err),
+            "beta_x_r2": float(r2_bx),
+            "beta_y_r2": float(r2_by),
+            "beta_fit_fmin": beta_fit_fmin,
+            "beta_fit_fmax": beta_fit_fmax,
+            "n_positions": int(len(pos)),
+            "n_velocity_points": int(len(v)),
+            "valid_for_msd": bool(msd_fit_frames >= 2 and np.isfinite(alpha)),
+            "valid_for_vacf": bool(vacf_fit_frames >= 5 and np.isfinite(tau_p)),
+            "valid_for_orientation": bool(orient_fit_frames >= 5 and np.isfinite(tau_r)),
+            "valid_for_psd": bool(psd_points_total >= 3 and (np.isfinite(beta_x) or np.isfinite(beta_y))),
         })
         
     df = pd.DataFrame(records)
@@ -918,52 +1152,80 @@ def _demo() -> None:
 
 
 
-def main() -> None:
+def main_all_droplet() -> None:
     """
     Run single-droplet analysis for one selected trajectory.
     """
+    # CSV_PATH = Path("./output_droplet_tracking/csv_files")
+    CSV_PATH = Path("./simulation data/forBeta_50_Sigma_0.01")
+    
+    for i in CSV_PATH.glob('*.csv'):
 
-    CSV_PATH = Path("./output_droplet_tracking/csv_files")
+        file_path = i
 
-    file_path = CSV_PATH / "for_2.1_droplets.csv"
+        positions_dict, total_paths, consistent_paths = (
+            load_positions(file_path)
+        )
 
-    positions_dict, total_paths, consistent_paths = (
-        load_positions(file_path)
-    )
+        # --------------------------------------------------
+        # Select droplet ID
+        # --------------------------------------------------
 
-    # --------------------------------------------------
-    # Select droplet ID
-    # --------------------------------------------------
+        if not positions_dict:
+            print(f"No droplets found in {file_path}")
+            continue
 
-    droplet_id = 2
+        droplet_id = int(np.random.choice(list(positions_dict.keys())))
 
-    positions = positions_dict[droplet_id]
+        positions = positions_dict[droplet_id]
 
-    print(f"--- Analyzing Single Droplet ({droplet_id}) ---")
-    result = analyze_single_droplet(
-        positions=positions,
-        dt=0.2,
-        droplet_id=droplet_id,
-        experiment_name=file_path.stem,
-        output_dir=Path(
-            "./output_droplet_tracking/plots/single_droplet"
-        ),
-    )
+        print(f"--- Analyzing Single Droplet ({droplet_id}) ---")
+        result = analyze_single_droplet(
+            positions=positions,
+            dt=0.2,
+            droplet_id=droplet_id,
+            experiment_name=file_path.stem,
+            output_dir=Path(
+                f"./output_droplet_tracking/plots/{i.name.split('.csv')[0]}"
+            ),
+        )
 
-    print(result)
+        print(result)
 
-    # --------------------------------------------------
-    # Compare all retained droplets
-    # --------------------------------------------------
-    print("\n--- Analyzing All Droplets ---")
-    df = analyze_all_droplets(
-        positions_dict=positions_dict,
-        dt=0.2,
-        experiment_name=file_path.stem,
-        output_dir=Path("./output_droplet_tracking/plots/single_droplet"),
-    )
-    print("\nDroplet Statistics DataFrame:")
-    print(df.to_string())
+
+def main_single_droplet() -> None:
+    """
+    Compare all retained droplets across each CSV.
+    """
+    # CSV_PATH = Path("./output_droplet_tracking/csv_files")
+    CSV_PATH = Path("./simulation data/forBeta_50_Sigma_0.01")
+    for i in CSV_PATH.glob('*.csv'):
+
+        file_path = i
+
+        positions_dict, total_paths, consistent_paths = (
+            load_positions(file_path)
+        )
+
+        # --------------------------------------------------
+        # Compare all retained droplets
+        # --------------------------------------------------
+        print("\n--- Analyzing All Droplets ---")
+        df = analyze_all_droplets(
+            positions_dict=positions_dict,
+            dt=0.2,
+            experiment_name=file_path.stem,
+            output_dir=Path(
+                f"./output_droplet_tracking/plots/{i.name.split('.csv')[0]}/all_droplets"
+            ),
+        )
+        print("\nDroplet Statistics DataFrame:")
+        print(df.to_string())
+
+
+def main() -> None:
+    # main_single_droplet()
+    main_all_droplet()
 
 
 

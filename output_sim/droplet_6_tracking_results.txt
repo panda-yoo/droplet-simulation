@@ -1,0 +1,19 @@
+=== droplet_6_tracking ===
+
+Total paths detected        = 6
+Retained tracks             = 6
+Discarded tracks            = 0
+Consistent paths (used)     = 6
+Ensemble average N          = 6
+
+MSD exponent alpha          = 1.5271810141072337 ± 0.008809518541434108  R2 = 0.9961218763225339
+PSD exponent beta_x         = nan ± nan  R2 = nan
+PSD exponent beta_y         = nan ± nan  R2 = nan
+Velocity persistence tau_p  = 0.031034975761261286 ± 0.0036377416061521253 s
+Rotational persistence tau_r = 0.003046829311585189 ± 0.0005390890783245478 s
+
+--- Bias diagnostics ---
+Retained mean speed   = 4.39228
+Retained std speed    = 0.0586389
+Discarded mean speed  = nan
+Discarded std speed   = nan

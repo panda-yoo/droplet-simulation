@@ -83,9 +83,9 @@ def run_simulation():
 
     D_val = 1e-5
 
-    beta = 400.0
+    beta = 800.0
 
-    sigma = 5e-2
+    sigma = 0.1
 
     T = 2.0                # shorter lifetime => less spaghetti
 
@@ -94,7 +94,7 @@ def run_simulation():
     Rmin = 0.008
 
     delta = 0.060
-    eta = 1.0
+    eta = 3.0
 
 
     # =========================================================

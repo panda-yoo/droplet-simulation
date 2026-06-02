@@ -310,11 +310,11 @@ def main():
     # Loads existing trajectory CSVs and runs the full analysis.
     # Use this after tracking or simulation has already generated CSVs.
 
-    pipeline.run_analysis(
-        base_dir="./output_droplet_tracking",
-        output_dir="./output_droplet_tracking/plots",
-        dt=0.2,
-    )
+    # pipeline.run_analysis(
+    #     base_dir="./output_droplet_tracking",
+    #     output_dir="./output_droplet_tracking/plots",
+    #     dt=0.2,
+    # )
 
     # ====================================================
     # TRACKING
@@ -339,8 +339,16 @@ def main():
     # pipeline.run_analysis(
     #     base_dir="simulation data",
     #     output_dir="./output_sim",
-    #     dt=0.002,
+    #     dt=0.2,
     # )
+    
+    pipeline.run_analysis(
+        base_dir="./simulation data/forBeta_50_Sigma_0.01",
+        output_dir="./output_sim",
+        dt=0.002,
+    )
+    
+
 
     # ====================================================
     # FULL PIPELINE
