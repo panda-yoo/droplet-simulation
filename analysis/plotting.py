@@ -36,7 +36,7 @@ from numpy.typing import NDArray
 from typing import Optional
 
 from analysis.types import PositionsDict
-
+from seaborn import heatmap
 
 # =========================================================
 # Trajectories
@@ -505,3 +505,25 @@ def plot_track_length_hist(
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, f"{label}_track_length_hist.png"), dpi=300)
     plt.close(fig)
+
+
+def plot_vacf_heatmap_btw_droplets(
+    corr_matrix : NDArray[np.floating],
+    droplet_ids : list,save_plot : bool = False,
+    output_dir : str = "",label : str = "",
+    lag_time : int = 0) -> None:
+    
+    fig, ax = plt.subplots(figsize=(6, 4))
+  
+    ax.set_xlabel(r"droplets")
+    ax.set_ylabel(r"droplets")
+    
+    heatmap(corr_matrix[lag_time],xticklabels=droplet_ids,
+            yticklabels=droplet_ids,annot=True,fmt=".2f",
+            cmap="coolwarm",ax=ax)
+    plt.show()
+    plt.close(fig)
+    fig.tight_layout()
+    fig.savefig(os.path.join(output_dir, f"{label}_msd_pair_weighted.png"), dpi=300)
+
+

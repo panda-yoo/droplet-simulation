@@ -59,6 +59,7 @@ from analysis.plotting import (
     plot_track_length_hist,
 )
 
+from analysis.cross_analysis import (compute_cross_vcaf,compute_map)
 
 # =========================================================
 # Post-process a single folder

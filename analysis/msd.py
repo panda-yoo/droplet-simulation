@@ -23,6 +23,7 @@ try:
     import statsmodels.api as sm
 except Exception:
     sm = None
+    print(Exception)
 
 from analysis.types import PositionsDict
 
@@ -65,23 +66,23 @@ def _loglog_ols(
         fitted_y = 10.0 ** model.predict(X)
         return slope, slope_err, r2, fitted_y
 
-    # Fallback: manual OLS
-    x_mean = np.mean(log_x)
-    y_mean = np.mean(log_y)
-    ss_x = np.sum((log_x - x_mean) ** 2)
-    if ss_x == 0:
-        return np.nan, np.nan, np.nan, np.full_like(log_x, np.nan)
-    slope = np.sum((log_x - x_mean) * (log_y - y_mean)) / ss_x
-    intercept = y_mean - slope * x_mean
-    fitted_log_y = intercept + slope * log_x
-    residuals = log_y - fitted_log_y
-    rss = np.sum(residuals ** 2)
-    tss = np.sum((log_y - y_mean) ** 2)
-    dof = max(len(log_x) - 2, 1)
-    sigma2 = rss / dof
-    slope_err = np.sqrt(sigma2 / ss_x)
-    r2 = 1.0 - (rss / tss) if tss > 0 else np.nan
-    return slope, slope_err, r2, 10.0 ** fitted_log_y
+    # # Fallback: manual OLS
+    # x_mean = np.mean(log_x)
+    # y_mean = np.mean(log_y)
+    # ss_x = np.sum((log_x - x_mean) ** 2)
+    # if ss_x == 0:
+    #     return np.nan, np.nan, np.nan, np.full_like(log_x, np.nan)
+    # slope = np.sum((log_x - x_mean) * (log_y - y_mean)) / ss_x
+    # intercept = y_mean - slope * x_mean
+    # fitted_log_y = intercept + slope * log_x
+    # residuals = log_y - fitted_log_y
+    # rss = np.sum(residuals ** 2)
+    # tss = np.sum((log_y - y_mean) ** 2)
+    # dof = max(len(log_x) - 2, 1)
+    # sigma2 = rss / dof
+    # slope_err = np.sqrt(sigma2 / ss_x)
+    # r2 = 1.0 - (rss / tss) if tss > 0 else np.nan
+    # return slope, slope_err, r2, 10.0 ** fitted_log_y
 
 
 # =========================================================

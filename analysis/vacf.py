@@ -64,10 +64,11 @@ def compute_velocity(
 def compute_vacf(
     r: NDArray[np.floating],
     dt: float = 1.0,
+    lagtime: Optional[int] = None,
 ) -> NDArray[np.floating]:
     """
     Compute the velocity autocorrelation function for a single trajectory.
-
+    Normalized VACF.
     Parameters
     ----------
     r : ndarray, shape (N, 2)
@@ -88,13 +89,17 @@ def compute_vacf(
     ``VACF(τ) = mean_t [vx(t)·vx(t+τ) + vy(t)·vy(t+τ)]``.
     """
     v = compute_velocity(r, dt)
-    n = len(v)
+    if lagtime is not None:
+        v = v[:lagtime]
+        n = lagtime
+    else:
+        n = len(v)
+    
     vacf = np.zeros(n)
     for tau in range(n):
         corr = v[:n - tau, 0] * v[tau:, 0] + v[:n - tau, 1] * v[tau:, 1]
         vacf[tau] = np.mean(corr)
     return vacf
-
 
 # =========================================================
 # Exponential fit → persistence time
@@ -222,3 +227,62 @@ def ensemble_vacf_analysis(
     )
 
     return tau, ensemble_vacf, vacf_norm
+
+
+def compute_cross_vcaf(v1:NDArray[np.floating],
+                    v2:NDArray[np.floating],
+                    lag_time:int = None)->tuple[NDArray[np.floating],int]:
+
+    vi = compute_velocity(v1, dt=0.2)
+    vj = compute_velocity(v2, dt=0.2)
+
+    n = min(len(vi), len(vj))
+
+    if lag_time is None:
+        lag_time = n - 1
+        
+    cij = np.zeros(lag_time)
+
+    norm_i = np.mean(vi[:,0]**2 + vi[:,1]**2)
+    norm_j = np.mean(vj[:,0]**2 + vj[:,1]**2)
+
+    norm = np.sqrt(norm_i * norm_j)
+
+    for tau in range(lag_time):
+
+        corr = (
+            vi[:n-tau,0] * vj[tau:,0]
+            +
+            vi[:n-tau,1] * vj[tau:,1]
+        )
+
+        cij[tau] = np.mean(corr) / norm
+        
+    return cij,lag_time
+
+
+
+def compute_cross_correlation_matrix_fr_all_time(trajectories: PositionsDict,lagtime:int)->NDArray[np.floating]:
+    """computes a cross-correlation matrix for all tau from 0 to lagtime
+
+    Args:
+        trajectories (PositionsDict): _description_
+        lagtime (int): _description_
+        is_max (bool, optional): _description_. Defaults to True.
+
+    Returns:
+        NDArray[np.floating]: _description_
+    """
+    nsize = len(trajectories.keys())
+    m = np.zeros((lagtime,nsize,nsize))
+
+    for i,key1 in enumerate(trajectories.keys()):
+        for j,key2 in enumerate(trajectories.keys()):
+
+            vi = trajectories[key1]
+            vj = trajectories[key2]
+            cij,_ = compute_cross_vcaf(v1 = vi,v2= vj,lag_time=lagtime)
+    
+            m[:,i,j] = cij.squeeze()
+       
+    return m
