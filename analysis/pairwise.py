@@ -6,12 +6,15 @@ from analysis.types import PositionsDict,PairDistanceData
 
 
 def compute_inter_distance_squared(trajectories: PositionsDict) -> PairDistanceData:
-    """
-    Computes the inter-distance between two points in a 2D space.
-    
+    """_summary_
+
+    Args:
+        trajectories (PositionsDict): _description_
+
     Returns:
-        float: The distance between the two points.
+        PairDistanceData: _description_
     """
+    
     n = len(trajectories)
     trange = trajectories[list(trajectories.keys())[0]].shape[0]
     dro_ids = list(trajectories.keys())

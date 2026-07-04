@@ -7,3 +7,4 @@ simulation(model2)
 post_analysis
 *.png
 .continue/
+output.md
