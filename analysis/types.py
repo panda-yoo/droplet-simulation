@@ -7,6 +7,7 @@ Shared type aliases used across the analysis package.
 from numpy.typing import NDArray
 import numpy as np
 from dataclasses import dataclass,field
+from functools import cached_property
 
 from typing import Dict, Optional, Tuple
 
@@ -17,8 +18,9 @@ PositionsDict = Dict[int, NDArray[np.floating]]
 class PairDistanceData:
     distances: NDArray[np.float64]
     pair_map: list[tuple[int, int]]
-
-
+    
+    # default=None -> means take default as None type
+    # init=False -> dont intialize when a object is initilaized i.e init is called 
     _mean: Optional[NDArray[np.float64]] = field(default=None, init=False)
     _std: Optional[NDArray[np.float64]] = field(default=None, init=False)
 
@@ -68,3 +70,44 @@ class PairDistanceData:
         Convert standardized distance changes into physical distance changes.
         """
         return dz * self.std
+
+@dataclass
+class SVDAnalysis:
+    
+    # Original data
+    data: NDArray[np.float64]
+    # SVD decomposition
+    U: NDArray[np.float64]
+    S: NDArray[np.float64]
+    VT: NDArray[np.float64]
+    
+    # Metadata
+    n_modes: int = 3
+    
+    # Low-dimensional representation
+    @cached_property
+    def scores(self)->NDArray[np.float64]:
+        """scalar multiplication of vectors u with sigma eigenvalues  
+
+        Returns:
+            NDArray[np.float64]: _description_
+        """
+        return self.S * self.U 
+         
+    @cached_property
+    def reduced_scores(self)->NDArray[np.float64]:
+        return self.scores[:,:self.n_modes]
+    
+    @cached_property
+    def explained_variance(self):
+        return self.S**2 / np.sum(self.S**2)
+        
+    @cached_property
+    def cumulative_variance(self):
+        return np.cumsum(self.explained_variance)
+    
+    @cached_property
+    def reconstruct(self):
+        return (self.U[:,:self.n_modes] 
+                @ np.diag(self.S[:self.n_modes])
+                @ self.VT[:self.n_modes])
